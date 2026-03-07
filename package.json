@@ -1,0 +1,30 @@
+{
+  "name": "neo-idb",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "files": [
+    "dist"
+  ],
+  "main": "./dist/neo-idb.umd.cjs",
+  "module": "./dist/neo-idb.js",
+  "exports": {
+    ".": {
+      "import": "./dist/neo-idb.js",
+      "require": "./dist/neo-idb.umd.cjs"
+    }
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "format": "bunx prettier --write .",
+    "build:watch": "vite build --watch"
+  },
+  "devDependencies": {
+    "@types/node": "^24",
+    "prettier": "^3.8.1",
+    "typescript": "~5.9.3",
+    "vite": "^7.3.1"
+  }
+}
