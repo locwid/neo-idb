@@ -1,6 +1,7 @@
 import { NeoIDBError } from './error'
 import { IDBMigration } from './idb-migration'
 import { IDBObject } from './idb-object'
+import type { IDBQuery } from './idb-query'
 
 interface IDBOptions {
   name: string
@@ -118,10 +119,77 @@ class IDB {
     })
   }
 
-  count(storeName: string): Promise<number> {
+  count(storeName: string, query?: IDBQuery): Promise<number> {
     return this.asyncTx(storeName, 'readonly', (tx) => {
       const obj = new IDBObject(storeName, tx)
-      return obj.count()
+      return obj.count(query)
+    })
+  }
+
+  clear(storeName: string): Promise<void> {
+    return this.asyncTx(storeName, 'readwrite', (tx) => {
+      const obj = new IDBObject(storeName, tx)
+      obj.clear()
+    })
+  }
+
+  delete(storeName: string, query: IDBQuery): Promise<void> {
+    return this.asyncTx(storeName, 'readwrite', (tx) => {
+      const obj = new IDBObject(storeName, tx)
+      obj.delete(query)
+    })
+  }
+
+  deleteMany(storeName: string, queries: IDBQuery[]): Promise<void> {
+    return this.asyncTx(storeName, 'readwrite', (tx) => {
+      const obj = new IDBObject(storeName, tx)
+      obj.deleteMany(queries)
+    })
+  }
+
+  get(storeName: string, query: IDBQuery): Promise<any> {
+    return this.asyncTx(storeName, 'readonly', (tx) => {
+      const obj = new IDBObject(storeName, tx)
+      return obj.get(query)
+    })
+  }
+
+  getAll(
+    storeName: string,
+    query?: IDBQuery | null,
+    count?: number,
+  ): Promise<any[]> {
+    return this.asyncTx(storeName, 'readonly', (tx) => {
+      const obj = new IDBObject(storeName, tx)
+      return obj.getAll(query, count)
+    })
+  }
+
+  getAllKeys(
+    storeName: string,
+    query?: IDBQuery | null,
+    count?: number,
+  ): Promise<IDBValidKey[]> {
+    return this.asyncTx(storeName, 'readonly', (tx) => {
+      const obj = new IDBObject(storeName, tx)
+      return obj.getAllKeys(query, count)
+    })
+  }
+
+  getKeys(
+    storeName: string,
+    query: IDBQuery,
+  ): Promise<IDBValidKey | undefined> {
+    return this.asyncTx(storeName, 'readonly', (tx) => {
+      const obj = new IDBObject(storeName, tx)
+      return obj.getKey(query)
+    })
+  }
+
+  put(storeName: string, value: any, key?: IDBValidKey): Promise<void> {
+    return this.asyncTx(storeName, 'readwrite', (tx) => {
+      const obj = new IDBObject(storeName, tx)
+      obj.put(value, key)
     })
   }
 
