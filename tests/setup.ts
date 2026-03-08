@@ -6,7 +6,7 @@ const globalWithWindow = globalThis as typeof globalThis & {
 }
 
 if (!globalWithWindow.window) {
-  globalWithWindow.window = globalThis
+  globalWithWindow.window = globalThis as Window & typeof globalThis
 }
 
 const trackedDatabaseNames = new Set<string>()

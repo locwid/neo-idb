@@ -1,0 +1,13 @@
+#!/usr/bin/env sh
+set -e
+
+echo "[pre-commit] Running format:check"
+bun run format:check
+
+echo "[pre-commit] Running typecheck"
+bun run typecheck
+
+echo "[pre-commit] Running test"
+bun run test
+
+echo "[pre-commit] All checks passed"
