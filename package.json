@@ -15,7 +15,6 @@
     }
   },
   "scripts": {
-    "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
     "format": "bunx prettier --write .",
