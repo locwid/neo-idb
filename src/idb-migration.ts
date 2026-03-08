@@ -1,6 +1,6 @@
 type MigrationAction = (ctx: { db: IDBDatabase; tx: IDBTransaction }) => void
 
-export class IDBMigration {
+export class NeoIDBMigration {
   private version: number
   private actions: Array<MigrationAction> = []
   private stores: Map<string, IDBObjectStore> = new Map()
@@ -13,7 +13,7 @@ export class IDBMigration {
     return this.version
   }
 
-  addStore(name: string, keyPath?: string | string[]): IDBMigration {
+  addStore(name: string, keyPath?: string | string[]): NeoIDBMigration {
     this.actions.push(({ db }) => {
       const store = db.createObjectStore(name, { keyPath })
       this.stores.set(name, store)
@@ -21,7 +21,7 @@ export class IDBMigration {
     return this
   }
 
-  deleteStore(name: string): IDBMigration {
+  deleteStore(name: string): NeoIDBMigration {
     this.actions.push(({ db }) => {
       db.deleteObjectStore(name)
       this.stores.delete(name)
@@ -29,7 +29,7 @@ export class IDBMigration {
     return this
   }
 
-  renameStore(oldName: string, newName: string): IDBMigration {
+  renameStore(oldName: string, newName: string): NeoIDBMigration {
     this.actions.push(({ db, tx }) => {
       const oldStore = tx.objectStore(oldName) || this.stores.get(oldName)
       if (!oldStore) {
@@ -71,7 +71,7 @@ export class IDBMigration {
     indexName: string,
     keyPath: string | string[],
     unique = false,
-  ): IDBMigration {
+  ): NeoIDBMigration {
     this.actions.push(({ tx }) => {
       const store = tx.objectStore(storeName) || this.stores.get(storeName)
       if (!store) {
@@ -84,7 +84,7 @@ export class IDBMigration {
     return this
   }
 
-  deleteIndex(storeName: string, indexName: string): IDBMigration {
+  deleteIndex(storeName: string, indexName: string): NeoIDBMigration {
     this.actions.push(({ tx }) => {
       const store = tx.objectStore(storeName) || this.stores.get(storeName)
       if (!store) {

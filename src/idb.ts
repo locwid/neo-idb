@@ -1,20 +1,21 @@
 import { NeoIDBError } from './error'
-import { IDBMigration } from './idb-migration'
-import { IDBObject } from './idb-object'
-import type { IDBQuery } from './idb-query'
+import type { NeoIDBIndex } from './idb-index'
+import { NeoIDBMigration } from './idb-migration'
+import { NeoIDBObject } from './idb-object'
+import type { NeoIDBQuery } from './idb-query'
 
 interface IDBOptions {
   name: string
-  definition: (v: (version: number) => IDBMigration) => void
+  definition: (v: (version: number) => NeoIDBMigration) => void
 }
 
 type TxContext<TStores extends string | readonly string[]> =
   TStores extends string
-    ? Record<TStores, IDBObject>
-    : Record<TStores[number], IDBObject>
+    ? Record<TStores, NeoIDBObject>
+    : Record<TStores[number], NeoIDBObject>
 
 export const neoIDB = (options: IDBOptions) => {
-  return new Promise<IDB>((resolve, reject) => {
+  return new Promise<NeoIDB>((resolve, reject) => {
     if (!window.indexedDB) {
       throw new NeoIDBError(
         "Your browser doesn't support a stable version of IndexedDB. Such and such feature will not be available.",
@@ -22,12 +23,12 @@ export const neoIDB = (options: IDBOptions) => {
     }
 
     let lastVersion = 1
-    const migrationsMap = new Map<number, IDBMigration>()
+    const migrationsMap = new Map<number, NeoIDBMigration>()
     const handleDefinition = (version: number) => {
       if (lastVersion < version) {
         lastVersion = version
       }
-      const migration = new IDBMigration(version)
+      const migration = new NeoIDBMigration(version)
       migrationsMap.set(version, migration)
       return migration
     }
@@ -48,7 +49,7 @@ export const neoIDB = (options: IDBOptions) => {
     request.onsuccess = (event) => {
       const db = (event.target as IDBOpenDBRequest).result
       console.log('IndexedDB opened successfully:', db)
-      resolve(new IDB(db))
+      resolve(new NeoIDB(db))
     }
 
     request.onupgradeneeded = (event) => {
@@ -81,7 +82,7 @@ export const neoIDB = (options: IDBOptions) => {
   })
 }
 
-class IDB {
+class NeoIDB {
   private db: IDBDatabase
 
   constructor(db: IDBDatabase) {
@@ -96,10 +97,10 @@ class IDB {
     return this.asyncTx(storeNames, mode, (tx) => {
       const ctx = [storeNames].flat().reduce(
         (acc, storeName) => {
-          acc[storeName] = new IDBObject(storeName, tx)
+          acc[storeName] = new NeoIDBObject(storeName, tx)
           return acc
         },
-        {} as Record<string, IDBObject>,
+        {} as Record<string, NeoIDBObject>,
       ) as TxContext<TStores>
       return callback(ctx)
     })
@@ -107,93 +108,104 @@ class IDB {
 
   add(storeName: string, value: any, key?: IDBValidKey): Promise<void> {
     return this.asyncTx(storeName, 'readwrite', (tx) => {
-      const obj = new IDBObject(storeName, tx)
+      const obj = new NeoIDBObject(storeName, tx)
       obj.add(value, key)
     })
   }
 
   addMany(storeName: string, values: any[]): Promise<void> {
     return this.asyncTx(storeName, 'readwrite', (tx) => {
-      const obj = new IDBObject(storeName, tx)
+      const obj = new NeoIDBObject(storeName, tx)
       obj.addMany(values)
     })
   }
 
-  count(storeName: string, query?: IDBQuery): Promise<number> {
+  count(storeName: string, query?: NeoIDBQuery): Promise<number> {
     return this.asyncTx(storeName, 'readonly', (tx) => {
-      const obj = new IDBObject(storeName, tx)
+      const obj = new NeoIDBObject(storeName, tx)
       return obj.count(query)
     })
   }
 
   clear(storeName: string): Promise<void> {
     return this.asyncTx(storeName, 'readwrite', (tx) => {
-      const obj = new IDBObject(storeName, tx)
+      const obj = new NeoIDBObject(storeName, tx)
       obj.clear()
     })
   }
 
-  delete(storeName: string, query: IDBQuery): Promise<void> {
+  delete(storeName: string, query: NeoIDBQuery): Promise<void> {
     return this.asyncTx(storeName, 'readwrite', (tx) => {
-      const obj = new IDBObject(storeName, tx)
+      const obj = new NeoIDBObject(storeName, tx)
       obj.delete(query)
     })
   }
 
-  deleteMany(storeName: string, queries: IDBQuery[]): Promise<void> {
+  deleteMany(storeName: string, queries: NeoIDBQuery[]): Promise<void> {
     return this.asyncTx(storeName, 'readwrite', (tx) => {
-      const obj = new IDBObject(storeName, tx)
+      const obj = new NeoIDBObject(storeName, tx)
       obj.deleteMany(queries)
     })
   }
 
-  get(storeName: string, query: IDBQuery): Promise<any> {
+  get(storeName: string, query: NeoIDBQuery): Promise<any> {
     return this.asyncTx(storeName, 'readonly', (tx) => {
-      const obj = new IDBObject(storeName, tx)
+      const obj = new NeoIDBObject(storeName, tx)
       return obj.get(query)
     })
   }
 
   getAll(
     storeName: string,
-    query?: IDBQuery | null,
+    query?: NeoIDBQuery | null,
     count?: number,
   ): Promise<any[]> {
     return this.asyncTx(storeName, 'readonly', (tx) => {
-      const obj = new IDBObject(storeName, tx)
+      const obj = new NeoIDBObject(storeName, tx)
       return obj.getAll(query, count)
     })
   }
 
   getAllKeys(
     storeName: string,
-    query?: IDBQuery | null,
+    query?: NeoIDBQuery | null,
     count?: number,
   ): Promise<IDBValidKey[]> {
     return this.asyncTx(storeName, 'readonly', (tx) => {
-      const obj = new IDBObject(storeName, tx)
+      const obj = new NeoIDBObject(storeName, tx)
       return obj.getAllKeys(query, count)
     })
   }
 
-  getKeys(
+  getKey(
     storeName: string,
-    query: IDBQuery,
+    query: NeoIDBQuery,
   ): Promise<IDBValidKey | undefined> {
     return this.asyncTx(storeName, 'readonly', (tx) => {
-      const obj = new IDBObject(storeName, tx)
+      const obj = new NeoIDBObject(storeName, tx)
       return obj.getKey(query)
     })
   }
 
   put(storeName: string, value: any, key?: IDBValidKey): Promise<void> {
     return this.asyncTx(storeName, 'readwrite', (tx) => {
-      const obj = new IDBObject(storeName, tx)
+      const obj = new NeoIDBObject(storeName, tx)
       obj.put(value, key)
     })
   }
 
-  private asyncTx<TResult>(
+  index<TResult>(
+    storeName: string,
+    indexName: string,
+    callback: (index: NeoIDBIndex) => TResult | Promise<TResult>,
+  ) {
+    return this.asyncTx<TResult>(storeName, 'readonly', (tx) => {
+      const obj = new NeoIDBObject(storeName, tx)
+      return callback(obj.index(storeName, indexName))
+    })
+  }
+
+  private async asyncTx<TResult>(
     storeNames: readonly string[] | string,
     mode: IDBTransactionMode,
     callback: (tx: IDBTransaction) => TResult | Promise<TResult>,
@@ -213,17 +225,16 @@ class IDB {
       }
     })
 
-    return Promise.resolve(callback(tx))
-      .then(async (result) => {
-        await txCompletion
-        return result
-      })
-      .catch(async (error) => {
-        try {
-          tx.abort()
-        } catch {}
-        await txCompletion.catch(() => undefined)
-        throw error
-      })
+    try {
+      const result = await Promise.resolve(callback(tx))
+      await txCompletion
+      return result
+    } catch (error) {
+      try {
+        tx.abort()
+      } catch {}
+      await txCompletion.catch(() => undefined)
+      throw error
+    }
   }
 }

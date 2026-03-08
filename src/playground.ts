@@ -18,3 +18,6 @@ db.tx(['posts', 'users'], 'readwrite', ({ posts, users }) => {
 
 const userCount = await db.count('users')
 console.log('User count:', userCount)
+
+const data = await db.index('posts', 'userId', (index) => index.get(1))
+console.log('Posts by user 1:', data)

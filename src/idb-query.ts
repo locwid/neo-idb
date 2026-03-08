@@ -1,1 +1,1 @@
-export type IDBQuery = IDBValidKey | IDBKeyRange
+export type NeoIDBQuery = IDBValidKey | IDBKeyRange

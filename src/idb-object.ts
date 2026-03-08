@@ -1,6 +1,7 @@
-import type { IDBQuery } from './idb-query'
+import { NeoIDBIndex } from './idb-index'
+import type { NeoIDBQuery } from './idb-query'
 
-export class IDBObject {
+export class NeoIDBObject {
   private storeName: string
   private tx: IDBTransaction
 
@@ -21,7 +22,7 @@ export class IDBObject {
     }
   }
 
-  count(query?: IDBQuery): Promise<number> {
+  count(query?: NeoIDBQuery): Promise<number> {
     return new Promise((resolve) => {
       const store = this.tx.objectStore(this.storeName)
       const request = store.count(query)
@@ -36,19 +37,19 @@ export class IDBObject {
     store.clear()
   }
 
-  delete(query: IDBQuery): void {
+  delete(query: NeoIDBQuery): void {
     const store = this.tx.objectStore(this.storeName)
     store.delete(query)
   }
 
-  deleteMany(queries: IDBQuery[]): void {
+  deleteMany(queries: NeoIDBQuery[]): void {
     const store = this.tx.objectStore(this.storeName)
     for (const query of queries) {
       store.delete(query)
     }
   }
 
-  get(query: IDBQuery): Promise<any> {
+  get(query: NeoIDBQuery): Promise<any> {
     return new Promise((resolve) => {
       const store = this.tx.objectStore(this.storeName)
       const request = store.get(query)
@@ -58,7 +59,7 @@ export class IDBObject {
     })
   }
 
-  getAll(query?: IDBQuery | null, count?: number): Promise<any[]> {
+  getAll(query?: NeoIDBQuery | null, count?: number): Promise<any[]> {
     return new Promise((resolve) => {
       const store = this.tx.objectStore(this.storeName)
       const request = store.getAll(query, count)
@@ -68,7 +69,10 @@ export class IDBObject {
     })
   }
 
-  getAllKeys(query?: IDBQuery | null, count?: number): Promise<IDBValidKey[]> {
+  getAllKeys(
+    query?: NeoIDBQuery | null,
+    count?: number,
+  ): Promise<IDBValidKey[]> {
     return new Promise((resolve) => {
       const store = this.tx.objectStore(this.storeName)
       const request = store.getAllKeys(query, count)
@@ -78,7 +82,7 @@ export class IDBObject {
     })
   }
 
-  getKey(query: IDBQuery): Promise<IDBValidKey | undefined> {
+  getKey(query: NeoIDBQuery): Promise<IDBValidKey | undefined> {
     return new Promise((resolve) => {
       const store = this.tx.objectStore(this.storeName)
       const request = store.getKey(query)
@@ -91,5 +95,11 @@ export class IDBObject {
   put(value: any, key?: IDBValidKey): void {
     const store = this.tx.objectStore(this.storeName)
     store.put(value, key)
+  }
+
+  index(storeName: string, indexName: string) {
+    const store = this.tx.objectStore(storeName)
+    const index = store.index(indexName)
+    return new NeoIDBIndex(index)
   }
 }
