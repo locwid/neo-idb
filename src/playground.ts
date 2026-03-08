@@ -1,6 +1,6 @@
-import { IDB } from './index'
+import { neoIDB } from './index'
 
-new IDB({
+neoIDB({
   name: 'test-db',
   definition(v) {
     v(1).addStore('users', 'id')

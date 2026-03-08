@@ -1,1 +1,1 @@
-export { IDB } from '@/idb'
+export { neoIDB } from '@/idb'

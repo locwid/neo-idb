@@ -5,10 +5,8 @@ interface IDBOptions {
   definition: (v: (version: number) => IDBMigration) => void
 }
 
-class IDB {
-  private _db: IDBDatabase | null = null
-
-  constructor(options: IDBOptions) {
+export const neoIDB = (options: IDBOptions) => {
+  return new Promise<IDB>((resolve, reject) => {
     if (!window.indexedDB) {
       throw new Error(
         "Your browser doesn't support a stable version of IndexedDB. Such and such feature will not be available.",
@@ -31,15 +29,18 @@ class IDB {
 
     request.onerror = (event) => {
       console.error('Error opening IndexedDB:', event)
+      reject(event)
     }
 
     request.onblocked = (event) => {
       console.warn('IndexedDB open request is blocked:', event)
+      reject(event)
     }
 
     request.onsuccess = (event) => {
       const db = (event.target as IDBOpenDBRequest).result
       console.log('IndexedDB opened successfully:', db)
+      resolve(new IDB(db))
     }
 
     request.onupgradeneeded = (event) => {
@@ -67,6 +68,14 @@ class IDB {
         }
       }
     }
+  })
+}
+
+class IDB {
+  private _db: IDBDatabase | null = null
+
+  constructor(db: IDBDatabase) {
+    this._db = db
   }
 
   private get db(): IDBDatabase {
