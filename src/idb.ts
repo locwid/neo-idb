@@ -1,14 +1,21 @@
+import { NeoIDBError } from './error'
 import { IDBMigration } from './idb-migration'
+import { IDBObject } from './idb-object'
 
 interface IDBOptions {
   name: string
   definition: (v: (version: number) => IDBMigration) => void
 }
 
+type TxContext<TStores extends string | readonly string[]> =
+  TStores extends string
+    ? Record<TStores, IDBObject>
+    : Record<TStores[number], IDBObject>
+
 export const neoIDB = (options: IDBOptions) => {
   return new Promise<IDB>((resolve, reject) => {
     if (!window.indexedDB) {
-      throw new Error(
+      throw new NeoIDBError(
         "Your browser doesn't support a stable version of IndexedDB. Such and such feature will not be available.",
       )
     }
@@ -29,12 +36,12 @@ export const neoIDB = (options: IDBOptions) => {
 
     request.onerror = (event) => {
       console.error('Error opening IndexedDB:', event)
-      reject(event)
+      reject(new NeoIDBError(event))
     }
 
     request.onblocked = (event) => {
       console.warn('IndexedDB open request is blocked:', event)
-      reject(event)
+      reject(new NeoIDBError(event))
     }
 
     request.onsuccess = (event) => {
@@ -47,7 +54,9 @@ export const neoIDB = (options: IDBOptions) => {
       const db = (event.target as IDBOpenDBRequest).result
       const tx = (event.target as IDBOpenDBRequest).transaction
       if (!tx) {
-        console.error('No transaction available during onupgradeneeded')
+        reject(
+          new NeoIDBError('No transaction available during onupgradeneeded'),
+        )
         return
       }
       const oldVersion = event.oldVersion
@@ -72,69 +81,81 @@ export const neoIDB = (options: IDBOptions) => {
 }
 
 class IDB {
-  private _db: IDBDatabase | null = null
+  private db: IDBDatabase
 
   constructor(db: IDBDatabase) {
-    this._db = db
+    this.db = db
   }
 
-  private get db(): IDBDatabase {
-    if (!this._db) {
-      throw new Error('Database is not initialized yet')
-    }
-    return this._db
+  tx<const TStores extends string | readonly string[], TResult>(
+    storeNames: TStores,
+    mode: IDBTransactionMode,
+    callback: (ctx: TxContext<TStores>) => TResult | Promise<TResult>,
+  ): Promise<TResult> {
+    return this.asyncTx(storeNames, mode, (tx) => {
+      const ctx = [storeNames].flat().reduce(
+        (acc, storeName) => {
+          acc[storeName] = new IDBObject(storeName, tx)
+          return acc
+        },
+        {} as Record<string, IDBObject>,
+      ) as TxContext<TStores>
+      return callback(ctx)
+    })
   }
 
-  transaction(
-    storeNames: string | string[],
-    mode: IDBTransactionMode = 'readonly',
-    cb: (tx: IDBTransaction) => void,
-  ): Promise<void> {
-    return new Promise((resolve, reject) => {})
-  }
-
-  add(storeName: string, value: any): Promise<void> {
-    return new Promise((resolve, reject) => {
-      const tx = this.db.transaction(storeName, 'readwrite')
-      const store = tx.objectStore(storeName)
-      const request = store.add(value)
-
-      request.onsuccess = () => {
-        console.log(`Value added to ${storeName} store successfully`)
-        resolve()
-      }
-
-      request.onerror = (event) => {
-        console.error(`Error adding value to ${storeName} store:`, event)
-        reject(event)
-      }
+  add(storeName: string, value: any, key?: IDBValidKey): Promise<void> {
+    return this.asyncTx(storeName, 'readwrite', (tx) => {
+      const obj = new IDBObject(storeName, tx)
+      obj.add(value, key)
     })
   }
 
   addMany(storeName: string, values: any[]): Promise<void> {
-    return new Promise((resolve, reject) => {
-      const tx = this.db.transaction(storeName, 'readwrite')
-      const store = tx.objectStore(storeName)
-
-      let completed = 0
-      values.forEach((value) => {
-        const request = store.add(value)
-
-        request.onsuccess = () => {
-          completed++
-          if (completed === values.length) {
-            console.log(`All values added to ${storeName} store successfully`)
-            resolve()
-          }
-        }
-
-        request.onerror = (event) => {
-          console.error(`Error adding value to ${storeName} store:`, event)
-          reject(event)
-        }
-      })
+    return this.asyncTx(storeName, 'readwrite', (tx) => {
+      const obj = new IDBObject(storeName, tx)
+      obj.addMany(values)
     })
   }
-}
 
-export { IDB }
+  count(storeName: string): Promise<number> {
+    return this.asyncTx(storeName, 'readonly', (tx) => {
+      const obj = new IDBObject(storeName, tx)
+      return obj.count()
+    })
+  }
+
+  private asyncTx<TResult>(
+    storeNames: readonly string[] | string,
+    mode: IDBTransactionMode,
+    callback: (tx: IDBTransaction) => TResult | Promise<TResult>,
+  ): Promise<TResult> {
+    const tx = this.db.transaction(storeNames, mode)
+
+    const txCompletion = new Promise<void>((resolve, reject) => {
+      tx.oncomplete = (event) => {
+        console.log('Transaction completed successfully', event)
+        resolve()
+      }
+      tx.onerror = (event) => {
+        reject(new NeoIDBError(event))
+      }
+      tx.onabort = (event) => {
+        reject(new NeoIDBError(event))
+      }
+    })
+
+    return Promise.resolve(callback(tx))
+      .then(async (result) => {
+        await txCompletion
+        return result
+      })
+      .catch(async (error) => {
+        try {
+          tx.abort()
+        } catch {}
+        await txCompletion.catch(() => undefined)
+        throw error
+      })
+  }
+}
