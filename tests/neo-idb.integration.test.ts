@@ -3,12 +3,29 @@ import { describe, expect, it } from 'vitest'
 import { neoIDB } from '@/index'
 import { trackDatabaseName } from './setup'
 
+type TestSchema = {
+  stores: {
+    pets: {
+      keyPath: 'id'
+      value: { id: number; name: string; type?: 'cat' | 'dog' }
+      indexes: {
+        byType: { keyPath: 'type' }
+      }
+    }
+    owners: {
+      keyPath: 'id'
+      value: { id: number; name: string }
+      indexes: {}
+    }
+  }
+}
+
 const createDbName = (prefix: string) =>
   trackDatabaseName(`${prefix}-${Date.now()}-${Math.random()}`)
 
 describe('neoIDB integration', () => {
   it('supports CRUD operations through the public API', async () => {
-    const db = await neoIDB({
+    const db = await neoIDB<TestSchema>({
       name: createDbName('neo-idb-crud'),
       definition: (v) => {
         v(1).addStore('pets', 'id').addIndex('pets', 'byType', 'type')
@@ -47,7 +64,7 @@ describe('neoIDB integration', () => {
   })
 
   it('supports tx helper for multiple stores', async () => {
-    const db = await neoIDB({
+    const db = await neoIDB<TestSchema>({
       name: createDbName('neo-idb-tx'),
       definition: (v) => {
         v(1).addStore('pets', 'id').addStore('owners', 'id')
@@ -73,7 +90,7 @@ describe('neoIDB integration', () => {
   })
 
   it('covers read APIs with ranges and limits', async () => {
-    const db = await neoIDB({
+    const db = await neoIDB<TestSchema>({
       name: createDbName('neo-idb-read-apis'),
       definition: (v) => {
         v(1).addStore('pets', 'id').addIndex('pets', 'byType', 'type')
@@ -105,7 +122,7 @@ describe('neoIDB integration', () => {
   })
 
   it('covers deleteMany and clear behavior', async () => {
-    const db = await neoIDB({
+    const db = await neoIDB<TestSchema>({
       name: createDbName('neo-idb-delete-clear'),
       definition: (v) => {
         v(1).addStore('pets', 'id')
@@ -127,7 +144,7 @@ describe('neoIDB integration', () => {
   })
 
   it('rejects on duplicate key writes and keeps previous records', async () => {
-    const db = await neoIDB({
+    const db = await neoIDB<TestSchema>({
       name: createDbName('neo-idb-duplicate-key'),
       definition: (v) => {
         v(1).addStore('pets', 'id')
@@ -144,7 +161,7 @@ describe('neoIDB integration', () => {
   })
 
   it('aborts tx when callback throws and rolls back writes', async () => {
-    const db = await neoIDB({
+    const db = await neoIDB<TestSchema>({
       name: createDbName('neo-idb-tx-rollback'),
       definition: (v) => {
         v(1).addStore('pets', 'id')
@@ -162,7 +179,7 @@ describe('neoIDB integration', () => {
   })
 
   it('returns value from index callback', async () => {
-    const db = await neoIDB({
+    const db = await neoIDB<TestSchema>({
       name: createDbName('neo-idb-index-callback'),
       definition: (v) => {
         v(1).addStore('pets', 'id').addIndex('pets', 'byType', 'type')

@@ -1,6 +1,8 @@
+import type { LegacyStoreName, NeoIDBSchema } from './idb-types'
+
 type MigrationAction = (ctx: { db: IDBDatabase; tx: IDBTransaction }) => void
 
-export class NeoIDBMigration {
+export class NeoIDBMigration<S extends NeoIDBSchema = NeoIDBSchema> {
   private version: number
   private actions: Array<MigrationAction> = []
   private stores: Map<string, IDBObjectStore> = new Map()
@@ -13,15 +15,20 @@ export class NeoIDBMigration {
     return this.version
   }
 
-  addStore(name: string, keyPath?: string | string[]): NeoIDBMigration {
+  addStore(
+    name: LegacyStoreName<S>,
+    keyPath?: string | readonly string[],
+  ): NeoIDBMigration<S> {
     this.actions.push(({ db }) => {
-      const store = db.createObjectStore(name, { keyPath })
+      const store = db.createObjectStore(name, {
+        keyPath: keyPath as string | string[] | undefined,
+      })
       this.stores.set(name, store)
     })
     return this
   }
 
-  deleteStore(name: string): NeoIDBMigration {
+  deleteStore(name: LegacyStoreName<S>): NeoIDBMigration<S> {
     this.actions.push(({ db }) => {
       db.deleteObjectStore(name)
       this.stores.delete(name)
@@ -29,7 +36,10 @@ export class NeoIDBMigration {
     return this
   }
 
-  renameStore(oldName: string, newName: string): NeoIDBMigration {
+  renameStore(
+    oldName: LegacyStoreName<S>,
+    newName: LegacyStoreName<S>,
+  ): NeoIDBMigration<S> {
     this.actions.push(({ db, tx }) => {
       const oldStore = tx.objectStore(oldName) || this.stores.get(oldName)
       if (!oldStore) {
@@ -67,11 +77,11 @@ export class NeoIDBMigration {
   }
 
   addIndex(
-    storeName: string,
+    storeName: LegacyStoreName<S>,
     indexName: string,
-    keyPath: string | string[],
+    keyPath: string | readonly string[],
     unique = false,
-  ): NeoIDBMigration {
+  ): NeoIDBMigration<S> {
     this.actions.push(({ tx }) => {
       const store = tx.objectStore(storeName) || this.stores.get(storeName)
       if (!store) {
@@ -84,7 +94,10 @@ export class NeoIDBMigration {
     return this
   }
 
-  deleteIndex(storeName: string, indexName: string): NeoIDBMigration {
+  deleteIndex(
+    storeName: LegacyStoreName<S>,
+    indexName: string,
+  ): NeoIDBMigration<S> {
     this.actions.push(({ tx }) => {
       const store = tx.objectStore(storeName) || this.stores.get(storeName)
       if (!store) {

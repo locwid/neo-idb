@@ -62,7 +62,7 @@ describe('NeoIDBObject and NeoIDBIndex', () => {
     expect(await readObj.getAllKeys()).toEqual([1, 2, 3])
     expect(await readObj.getKey(IDBKeyRange.only(2))).toBe(2)
 
-    const byType = readObj.index('pets', 'byType')
+    const byType = readObj.index('byType')
     expect(await byType.count('cat')).toBe(2)
 
     await waitTransaction(readTx)
