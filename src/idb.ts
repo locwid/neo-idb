@@ -247,8 +247,7 @@ export class NeoIDB<S extends NeoIDBSchema> {
     const tx = this.db.transaction(storeNames, mode)
 
     const txCompletion = new Promise<void>((resolve, reject) => {
-      tx.oncomplete = (event) => {
-        console.log('Transaction completed successfully', event)
+      tx.oncomplete = () => {
         resolve()
       }
       tx.onerror = (event) => {

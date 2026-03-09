@@ -1,22 +1,38 @@
 {
   "name": "neo-idb",
-  "private": true,
   "version": "0.0.0",
+  "description": "A modern wrapper around IndexedDB with a simple API and support for promises",
+  "license": "MIT",
+  "repository": "https://github.com/locwid/neo-idb",
+  "author": {
+    "name": "locwid",
+    "url": "https://github.com/locwid"
+  },
+  "keywords": [
+    "indexeddb",
+    "idb",
+    "database",
+    "browser",
+    "javascript",
+    "typescript"
+  ],
+  "private": false,
   "type": "module",
   "files": [
     "dist"
   ],
+  "types": "./dist/neo-idb.d.ts",
   "main": "./dist/neo-idb.umd.cjs",
   "module": "./dist/neo-idb.js",
   "exports": {
     ".": {
+      "types": "./dist/neo-idb.d.ts",
       "import": "./dist/neo-idb.js",
       "require": "./dist/neo-idb.umd.cjs"
     }
   },
   "scripts": {
     "build": "tsc && vite build",
-    "preview": "vite preview",
     "format": "bunx prettier --write .",
     "format:check": "bunx prettier --check .",
     "build:watch": "vite build --watch",
@@ -24,7 +40,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "prepare": "git config core.hooksPath .git-hooks || echo 'Not in a git repo'"
+    "prepare": "git config core.hooksPath .git-hooks || echo 'Not in a git repo'",
+    "prepublishOnly": "npm run typecheck && npm run test && npm run build"
   },
   "devDependencies": {
     "@types/node": "^24",
@@ -33,6 +50,7 @@
     "prettier": "^3.8.1",
     "typescript": "~5.9.3",
     "vite": "^7.3.1",
+    "vite-plugin-dts": "^4.5.4",
     "vitest": "^4.0.18"
   }
 }
