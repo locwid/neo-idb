@@ -1,4 +1,10 @@
-import type { LegacyStoreName, NeoIDBSchema } from './idb-types'
+import type {
+  LegacyIndexKeyPath,
+  LegacyIndexName,
+  LegacyStoreKeyPath,
+  LegacyStoreName,
+  NeoIDBSchema,
+} from './idb-types'
 
 type MigrationAction = (ctx: { db: IDBDatabase; tx: IDBTransaction }) => void
 
@@ -15,9 +21,9 @@ export class NeoIDBMigration<S extends NeoIDBSchema = NeoIDBSchema> {
     return this.version
   }
 
-  addStore(
-    name: LegacyStoreName<S>,
-    keyPath?: string | readonly string[],
+  addStore<K extends LegacyStoreName<S>>(
+    name: K,
+    keyPath?: LegacyStoreKeyPath<S, K>,
   ): NeoIDBMigration<S> {
     this.actions.push(({ db }) => {
       const store = db.createObjectStore(name, {
@@ -76,10 +82,10 @@ export class NeoIDBMigration<S extends NeoIDBSchema = NeoIDBSchema> {
     return this
   }
 
-  addIndex(
-    storeName: LegacyStoreName<S>,
-    indexName: string,
-    keyPath: string | readonly string[],
+  addIndex<K extends LegacyStoreName<S>, I extends LegacyIndexName<S, K>>(
+    storeName: K,
+    indexName: I,
+    keyPath: LegacyIndexKeyPath<S, K, I>,
     unique = false,
   ): NeoIDBMigration<S> {
     this.actions.push(({ tx }) => {
@@ -94,9 +100,9 @@ export class NeoIDBMigration<S extends NeoIDBSchema = NeoIDBSchema> {
     return this
   }
 
-  deleteIndex(
-    storeName: LegacyStoreName<S>,
-    indexName: string,
+  deleteIndex<K extends LegacyStoreName<S>, I extends LegacyIndexName<S, K>>(
+    storeName: K,
+    indexName: I,
   ): NeoIDBMigration<S> {
     this.actions.push(({ tx }) => {
       const store = tx.objectStore(storeName) || this.stores.get(storeName)

@@ -90,6 +90,23 @@ export type LegacyStoreName<S extends NeoIDBSchema> =
   | StoreName<S>
   | (string & {})
 
-export type LegacyIndexName<S extends NeoIDBSchema, K extends StoreName<S>> =
-  | IndexName<S, K>
-  | (string & {})
+export type LegacyIndexName<
+  S extends NeoIDBSchema,
+  K extends LegacyStoreName<S>,
+> = K extends StoreName<S> ? IndexName<S, K> | (string & {}) : string
+
+export type LegacyStoreKeyPath<
+  S extends NeoIDBSchema,
+  K extends LegacyStoreName<S>,
+> = K extends StoreName<S> ? StoreKeyPath<S, K> : NeoIDBKeyPath
+
+export type LegacyIndexKeyPath<
+  S extends NeoIDBSchema,
+  K extends LegacyStoreName<S>,
+  I extends LegacyIndexName<S, K>,
+> =
+  K extends StoreName<S>
+    ? I extends IndexName<S, K>
+      ? IndexDef<S, K, I>['keyPath']
+      : NeoIDBKeyPath
+    : NeoIDBKeyPath

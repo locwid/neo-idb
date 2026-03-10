@@ -3,6 +3,23 @@ import { describe, expect, it } from 'vitest'
 import { NeoIDBMigration } from '@/idb-migration'
 import { trackDatabaseName } from './setup'
 
+type TestSchema = {
+  stores: {
+    pets: {
+      keyPath: 'id'
+      value: { id: number; name: string; type?: 'cat' | 'dog' }
+      indexes: {
+        byType: { keyPath: 'type' }
+      }
+    }
+    owners: {
+      keyPath: 'id'
+      value: { id: number; name: string }
+      indexes: {}
+    }
+  }
+}
+
 const createDbName = (prefix: string) =>
   trackDatabaseName(`${prefix}-${Date.now()}-${Math.random()}`)
 
@@ -34,7 +51,7 @@ const openAndUpgrade = (
 
 describe('NeoIDBMigration', () => {
   it('tracks version and exposes queued actions', () => {
-    const migration = new NeoIDBMigration(3)
+    const migration = new NeoIDBMigration<TestSchema>(3)
       .addStore('pets', 'id')
       .addIndex('pets', 'byType', 'type')
       .deleteIndex('pets', 'byType')
@@ -52,7 +69,7 @@ describe('NeoIDBMigration', () => {
     dbV1.close()
 
     const dbV2 = await openAndUpgrade(name, 2, (db, tx) => {
-      const migration = new NeoIDBMigration(2)
+      const migration = new NeoIDBMigration<TestSchema>(2)
         .addIndex('pets', 'byType', 'type')
         .addStore('owners', 'id')
       migration.getActions().forEach((action) => action({ db, tx }))
@@ -67,7 +84,7 @@ describe('NeoIDBMigration', () => {
     dbV2.close()
 
     const dbV3 = await openAndUpgrade(name, 3, (db, tx) => {
-      const migration = new NeoIDBMigration(3)
+      const migration = new NeoIDBMigration<TestSchema>(3)
         .deleteIndex('pets', 'byType')
         .deleteStore('owners')
       migration.getActions().forEach((action) => action({ db, tx }))
@@ -89,7 +106,10 @@ describe('NeoIDBMigration', () => {
     dbV1.close()
 
     const dbV2 = await openAndUpgrade(name, 2, (db, tx) => {
-      const migration = new NeoIDBMigration(2).renameStore('pets', 'animals')
+      const migration = new NeoIDBMigration<TestSchema>(2).renameStore(
+        'pets',
+        'animals',
+      )
       migration.getActions().forEach((action) => action({ db, tx }))
     })
 

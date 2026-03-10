@@ -41,7 +41,7 @@ export const neoIDB = <S extends NeoIDBSchema>(options: IDBOptions<S>) => {
       if (lastVersion < version) {
         lastVersion = version
       }
-      const migration = new NeoIDBMigration(version)
+      const migration = new NeoIDBMigration<S>(version)
       migrationsMap.set(version, migration)
       return migration
     }
