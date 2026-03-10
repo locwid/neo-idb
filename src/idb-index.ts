@@ -6,6 +6,7 @@ import type {
   StoreName,
   StoreValue,
 } from './idb-types'
+import { requestToPromise } from './utils'
 
 export class NeoIDBIndex<
   S extends NeoIDBSchema = NeoIDBSchema,
@@ -19,44 +20,32 @@ export class NeoIDBIndex<
   }
 
   count(query?: IndexQuery<S, K, I>): Promise<number> {
-    return new Promise((resolve) => {
-      const request = this.index.count(query)
-      request.onsuccess = () => resolve(request.result)
-    })
+    return requestToPromise<number>(this.index.count(query))
   }
 
   get(query: IndexQuery<S, K, I>): Promise<StoreValue<S, K> | undefined> {
-    return new Promise((resolve) => {
-      const request = this.index.get(query)
-      request.onsuccess = () => resolve(request.result)
-    })
+    return requestToPromise<StoreValue<S, K> | undefined>(this.index.get(query))
   }
 
   getAll(
     query?: IndexQuery<S, K, I> | null,
     count?: number,
   ): Promise<StoreValue<S, K>[]> {
-    return new Promise((resolve) => {
-      const request = this.index.getAll(query, count)
-      request.onsuccess = () => resolve(request.result)
-    })
+    return requestToPromise<StoreValue<S, K>[]>(this.index.getAll(query, count))
   }
 
   getAllKeys(
     query?: IndexQuery<S, K, I> | null,
     count?: number,
   ): Promise<IndexKeyOf<S, K, I>[]> {
-    return new Promise((resolve) => {
-      const request = this.index.getAllKeys(query, count)
-      request.onsuccess = () => resolve(request.result as IndexKeyOf<S, K, I>[])
-    })
+    return requestToPromise<IndexKeyOf<S, K, I>[]>(
+      this.index.getAllKeys(query, count),
+    )
   }
 
   getKey(query: IndexQuery<S, K, I>): Promise<IndexKeyOf<S, K, I> | undefined> {
-    return new Promise((resolve) => {
-      const request = this.index.getKey(query)
-      request.onsuccess = () =>
-        resolve(request.result as IndexKeyOf<S, K, I> | undefined)
-    })
+    return requestToPromise<IndexKeyOf<S, K, I> | undefined>(
+      this.index.getKey(query),
+    )
   }
 }
