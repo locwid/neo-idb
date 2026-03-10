@@ -31,7 +31,7 @@ export const neoIDB = <S extends NeoIDBSchema>(options: IDBOptions<S>) => {
   return new Promise<NeoIDB<S>>((resolve, reject) => {
     if (!window.indexedDB) {
       throw new NeoIDBError(
-        "Your browser doesn't support a stable version of IndexedDB. Such and such feature will not be available.",
+        "Your browser doesn't support a stable version of IndexedDB",
       )
     }
 
@@ -50,18 +50,15 @@ export const neoIDB = <S extends NeoIDBSchema>(options: IDBOptions<S>) => {
     const request = window.indexedDB.open(options.name, lastVersion)
 
     request.onerror = (event) => {
-      console.error('Error opening IndexedDB:', event)
       reject(new NeoIDBError(event))
     }
 
     request.onblocked = (event) => {
-      console.warn('IndexedDB open request is blocked:', event)
       reject(new NeoIDBError(event))
     }
 
     request.onsuccess = (event) => {
       const db = (event.target as IDBOpenDBRequest).result
-      console.log('IndexedDB opened successfully:', db)
       resolve(new NeoIDB<S>(db))
     }
 
@@ -77,15 +74,9 @@ export const neoIDB = <S extends NeoIDBSchema>(options: IDBOptions<S>) => {
       const oldVersion = event.oldVersion
       const newVersion = event.newVersion || db.version
 
-      console.log(
-        `Upgrading database from version ${oldVersion} to ${newVersion}`,
-      )
-
       for (let version = oldVersion + 1; version <= newVersion; version++) {
         const migration = migrationsMap.get(version)
         if (migration) {
-          console.log(`Applying migration for version ${version}`)
-          // Here you would apply the migration actions to the database
           migration.getActions().forEach((action) => action({ db, tx }))
         } else {
           console.warn(`No migration defined for version ${version}`)
