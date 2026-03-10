@@ -87,6 +87,7 @@ export class NeoIDBMigration<S extends NeoIDBSchema = NeoIDBSchema> {
     indexName: I,
     keyPath: LegacyIndexKeyPath<S, K, I>,
     unique = false,
+    multiEntry = false,
   ): NeoIDBMigration<S> {
     this.actions.push(({ tx }) => {
       const store = tx.objectStore(storeName) || this.stores.get(storeName)
@@ -95,7 +96,7 @@ export class NeoIDBMigration<S extends NeoIDBSchema = NeoIDBSchema> {
           `Store ${storeName} does not exist. Cannot add index ${indexName}.`,
         )
       }
-      store.createIndex(indexName, keyPath, { unique })
+      store.createIndex(indexName, keyPath, { unique, multiEntry })
     })
     return this
   }

@@ -7,9 +7,15 @@ type TestSchema = {
   stores: {
     pets: {
       keyPath: 'id'
-      value: { id: number; name: string; type?: 'cat' | 'dog' }
+      value: {
+        id: number
+        name: string
+        type?: 'cat' | 'dog'
+        tags?: string[]
+      }
       indexes: {
         byType: { keyPath: 'type' }
+        byTags: { keyPath: 'tags' }
       }
     }
     owners: {
@@ -44,6 +50,13 @@ const openAndUpgrade = (
       onUpgrade(db, tx)
     }
 
+    request.onsuccess = () => resolve(request.result)
+    request.onerror = () => reject(request.error)
+  })
+}
+
+const requestToPromise = <T>(request: IDBRequest<T>): Promise<T> => {
+  return new Promise((resolve, reject) => {
     request.onsuccess = () => resolve(request.result)
     request.onerror = () => reject(request.error)
   })
@@ -116,5 +129,73 @@ describe('NeoIDBMigration', () => {
     const stores = Array.from(dbV2.objectStoreNames)
     expect(stores).toContain('animals')
     expect(stores).not.toContain('pets')
+  })
+
+  it('creates multiEntry indexes when requested', async () => {
+    const name = createDbName('neo-idb-migration-multi-entry')
+
+    const dbV1 = await openAndUpgrade(name, 1, (db) => {
+      db.createObjectStore('pets', { keyPath: 'id' })
+    })
+    dbV1.close()
+
+    const dbV2 = await openAndUpgrade(name, 2, (db, tx) => {
+      const migration = new NeoIDBMigration<TestSchema>(2).addIndex(
+        'pets',
+        'byTags',
+        'tags',
+        false,
+        true,
+      )
+      migration.getActions().forEach((action) => action({ db, tx }))
+    })
+
+    const tx = dbV2.transaction('pets', 'readonly')
+    const index = tx.objectStore('pets').index('byTags')
+
+    expect(index.multiEntry).toBe(true)
+  })
+
+  it('indexes array items with multiEntry indexes', async () => {
+    const name = createDbName('neo-idb-migration-multi-entry-query')
+
+    const dbV1 = await openAndUpgrade(name, 1, (db) => {
+      db.createObjectStore('pets', { keyPath: 'id' })
+    })
+    dbV1.close()
+
+    const dbV2 = await openAndUpgrade(name, 2, (db, tx) => {
+      const migration = new NeoIDBMigration<TestSchema>(2).addIndex(
+        'pets',
+        'byTags',
+        'tags',
+        false,
+        true,
+      )
+      migration.getActions().forEach((action) => action({ db, tx }))
+    })
+
+    const seedTx = dbV2.transaction('pets', 'readwrite')
+    const store = seedTx.objectStore('pets')
+    store.add({ id: 1, name: 'Milo', tags: ['indoor', 'playful'] })
+    store.add({ id: 2, name: 'Rex', tags: ['active'] })
+    store.add({ id: 3, name: 'Luna', tags: ['indoor', 'calm'] })
+
+    await new Promise<void>((resolve, reject) => {
+      seedTx.oncomplete = () => resolve()
+      seedTx.onerror = () => reject(seedTx.error)
+      seedTx.onabort = () => reject(seedTx.error)
+    })
+
+    const checkTx = dbV2.transaction('pets', 'readonly')
+    const index = checkTx.objectStore('pets').index('byTags')
+
+    expect(await requestToPromise(index.count('indoor'))).toBe(2)
+    expect(await requestToPromise(index.getAllKeys('indoor'))).toEqual([1, 3])
+    expect(await requestToPromise(index.get('active'))).toEqual({
+      id: 2,
+      name: 'Rex',
+      tags: ['active'],
+    })
   })
 })
