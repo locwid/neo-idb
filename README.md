@@ -47,9 +47,9 @@ const cats = await db.index('pets', 'byType', (index) => index.getAll('cat'))
 ## Development
 
 ```bash
-npm run test
-npm run typecheck
-npm run build
+bun run test
+bun run typecheck
+bun run build
 ```
 
 ## License
