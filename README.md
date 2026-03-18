@@ -2,6 +2,11 @@
 
 A small, typed wrapper around IndexedDB with Promise-based API and versioned migrations.
 
+1. [Installation](#install)
+2. [Quick Start](#quick-start)
+3. [Development](#development)
+4. [License](#license)
+
 ## Install
 
 ```bash
@@ -36,13 +41,6 @@ await db.add('pets', { id: 1, name: 'Milo', type: 'cat' })
 const pet = await db.get('pets', 1)
 const cats = await db.index('pets', 'byType', (index) => index.getAll('cat'))
 ```
-
-## Main Methods
-
-- `db.add`, `db.addMany`, `db.put`, `db.delete`, `db.deleteMany`, `db.clear`
-- `db.get`, `db.getAll`, `db.getAllKeys`, `db.getKey`, `db.count`
-- `db.index(store, index, callback)`
-- `db.tx(stores, mode, callback)`
 
 ## Development
 
