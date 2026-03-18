@@ -14,6 +14,7 @@ import type {
 interface IDBOptions<S extends NeoIDBSchema> {
   name: string
   definition: (v: (version: number) => NeoIDBMigration<S>) => void
+  onDestroy?: (event: Event) => void
 }
 
 type TxStoresArg<S extends NeoIDBSchema> =
@@ -59,6 +60,9 @@ export const neoIDB = <S extends NeoIDBSchema>(options: IDBOptions<S>) => {
 
     request.onsuccess = (event) => {
       const db = (event.target as IDBOpenDBRequest).result
+      if (options.onDestroy) {
+        db.addEventListener('close', options.onDestroy)
+      }
       resolve(new NeoIDB<S>(db))
     }
 
@@ -91,6 +95,10 @@ export class NeoIDB<S extends NeoIDBSchema> {
 
   constructor(db: IDBDatabase) {
     this.db = db
+  }
+
+  close() {
+    this.db.close()
   }
 
   tx<const TStores extends TxStoresArg<S>, TResult>(

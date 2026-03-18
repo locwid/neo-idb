@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 import { neoIDB } from '@/index'
 import { trackDatabaseName } from './setup'
@@ -193,5 +193,85 @@ describe('neoIDB integration', () => {
 
     const key = await db.index('pets', 'byType', (index) => index.getKey('dog'))
     expect(key).toBe(2)
+  })
+})
+
+describe('neoIDB lifecycle', () => {
+  it('closes database and rejects further operations', async () => {
+    const db = await neoIDB<TestSchema>({
+      name: createDbName('neo-idb-close'),
+      definition: (v) => {
+        v(1).addStore('pets', 'id')
+      },
+    })
+
+    await db.add('pets', { id: 1, name: 'Milo' })
+    db.close()
+
+    await expect(db.count('pets')).rejects.toBeInstanceOf(Error)
+  })
+
+  it('allows repeated close calls without throwing', async () => {
+    const db = await neoIDB<TestSchema>({
+      name: createDbName('neo-idb-close-repeat'),
+      definition: (v) => {
+        v(1).addStore('pets', 'id')
+      },
+    })
+
+    expect(() => {
+      db.close()
+      db.close()
+    }).not.toThrow()
+  })
+
+  it('registers and executes onDestroy on close event', async () => {
+    const onDestroy = vi.fn<(event: Event) => void>()
+    const addEventListenerSpy = vi.spyOn(
+      IDBDatabase.prototype,
+      'addEventListener',
+    )
+
+    await neoIDB<TestSchema>({
+      name: createDbName('neo-idb-on-destroy'),
+      definition: (v) => {
+        v(1).addStore('pets', 'id')
+      },
+      onDestroy,
+    })
+
+    expect(addEventListenerSpy).toHaveBeenCalledWith('close', onDestroy)
+
+    const closeRegistration = addEventListenerSpy.mock.calls.find(
+      ([eventType]) => eventType === 'close',
+    )
+
+    expect(closeRegistration).toBeTruthy()
+
+    const listener = closeRegistration?.[1]
+    expect(listener).toBeTruthy()
+
+    if (typeof listener === 'function') {
+      listener(new Event('close'))
+    } else {
+      listener?.handleEvent(new Event('close'))
+    }
+    expect(onDestroy).toHaveBeenCalled()
+    expect(onDestroy).toHaveBeenCalledWith(expect.any(Event))
+
+    addEventListenerSpy.mockRestore()
+  })
+
+  it('works without onDestroy callback', async () => {
+    const db = await neoIDB<TestSchema>({
+      name: createDbName('neo-idb-without-on-destroy'),
+      definition: (v) => {
+        v(1).addStore('pets', 'id')
+      },
+    })
+
+    await expect(
+      db.add('pets', { id: 1, name: 'Milo' }),
+    ).resolves.toBeUndefined()
   })
 })
