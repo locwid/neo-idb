@@ -1,6 +1,6 @@
 {
   "name": "neo-idb",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "A modern wrapper around IndexedDB with a simple API and support for promises",
   "license": "MIT",
   "repository": "https://github.com/locwid/neo-idb",
