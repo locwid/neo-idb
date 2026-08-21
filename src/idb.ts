@@ -18,8 +18,7 @@ interface IDBOptions<S extends NeoIDBSchema> {
 }
 
 type TxStoresArg<S extends NeoIDBSchema> =
-  | StoreName<S>
-  | readonly StoreName<S>[]
+  StoreName<S> | readonly StoreName<S>[]
 
 export type TxContext<S extends NeoIDBSchema, TStores extends TxStoresArg<S>> =
   TStores extends StoreName<S>

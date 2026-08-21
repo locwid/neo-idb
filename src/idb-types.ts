@@ -77,8 +77,7 @@ export type IndexKeyOf<
 > = FallbackKey<KeyPathValue<StoreValue<S, K>, IndexDef<S, K, I>['keyPath']>>
 
 export type StoreQuery<S extends NeoIDBSchema, K extends StoreName<S>> =
-  | PrimaryKeyOf<S, K>
-  | IDBKeyRange
+  PrimaryKeyOf<S, K> | IDBKeyRange
 
 export type IndexQuery<
   S extends NeoIDBSchema,
@@ -87,8 +86,7 @@ export type IndexQuery<
 > = IndexKeyOf<S, K, I> | IDBKeyRange
 
 export type LegacyStoreName<S extends NeoIDBSchema> =
-  | StoreName<S>
-  | (string & {})
+  StoreName<S> | (string & {})
 
 export type LegacyIndexName<
   S extends NeoIDBSchema,

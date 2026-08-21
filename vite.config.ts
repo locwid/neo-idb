@@ -8,7 +8,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 export default defineConfig({
   plugins: [
     dts({
-      rollupTypes: true,
+      bundleTypes: true,
     }),
   ],
   resolve: {
@@ -21,7 +21,6 @@ export default defineConfig({
     lib: {
       entry: resolve(__dirname, 'src/index.ts'),
       name: 'neo-idb',
-      // the proper extensions will be added
       fileName: 'neo-idb',
     },
   },
