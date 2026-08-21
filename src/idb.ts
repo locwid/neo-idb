@@ -1,6 +1,6 @@
 import { NeoIDBError } from './error'
 import type { NeoIDBIndex } from './idb-index'
-import { NeoIDBMigration } from './idb-migration'
+import { NeoIDBMigration, NeoMigrator } from './idb-migration'
 import { NeoIDBObject } from './idb-object'
 import type {
   IndexName,
@@ -27,27 +27,24 @@ export type TxContext<S extends NeoIDBSchema, TStores extends TxStoresArg<S>> =
       ? { [K in TStores[number]]: NeoIDBObject<S, K> }
       : never
 
-export const neoIDB = <S extends NeoIDBSchema>(options: IDBOptions<S>) => {
-  return new Promise<NeoIDB<S>>((resolve, reject) => {
+export const neoIDB = async <S extends NeoIDBSchema>(
+  options: IDBOptions<S>,
+) => {
+  const db = await openIDB(options)
+  return new NeoIDB<S>(db)
+}
+
+const openIDB = <S extends NeoIDBSchema>(options: IDBOptions<S>) => {
+  return new Promise<IDBDatabase>((resolve, reject) => {
     if (!window.indexedDB) {
       throw new NeoIDBError(
         "Your browser doesn't support a stable version of IndexedDB",
       )
     }
 
-    let lastVersion = 1
-    const migrationsMap = new Map<number, NeoIDBMigration<S>>()
-    const handleDefinition = (version: number) => {
-      if (lastVersion < version) {
-        lastVersion = version
-      }
-      const migration = new NeoIDBMigration<S>(version)
-      migrationsMap.set(version, migration)
-      return migration
-    }
-    options.definition(handleDefinition)
+    const migrator = new NeoMigrator<S>(options.definition)
 
-    const request = window.indexedDB.open(options.name, lastVersion)
+    const request = window.indexedDB.open(options.name, migrator.lastVersion)
 
     request.onerror = (event) => {
       reject(new NeoIDBError(event))
@@ -62,28 +59,13 @@ export const neoIDB = <S extends NeoIDBSchema>(options: IDBOptions<S>) => {
       if (options.onDestroy) {
         db.addEventListener('close', options.onDestroy)
       }
-      resolve(new NeoIDB<S>(db))
+      resolve(db)
     }
 
     request.onupgradeneeded = (event) => {
-      const db = (event.target as IDBOpenDBRequest).result
-      const tx = (event.target as IDBOpenDBRequest).transaction
-      if (!tx) {
-        reject(
-          new NeoIDBError('No transaction available during onupgradeneeded'),
-        )
-        return
-      }
-      const oldVersion = event.oldVersion
-      const newVersion = event.newVersion || db.version
-
-      for (let version = oldVersion + 1; version <= newVersion; version++) {
-        const migration = migrationsMap.get(version)
-        if (migration) {
-          migration.getActions().forEach((action) => action({ db, tx }))
-        } else {
-          console.warn(`No migration defined for version ${version}`)
-        }
+      const err = migrator.migrate(event)
+      if (err) {
+        reject(err)
       }
     }
   })

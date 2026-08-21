@@ -1,3 +1,4 @@
+import { NeoIDBError } from './error'
 import type {
   LegacyIndexKeyPath,
   LegacyIndexName,
@@ -119,5 +120,42 @@ export class NeoIDBMigration<S extends NeoIDBSchema = NeoIDBSchema> {
 
   getActions(): Array<MigrationAction> {
     return this.actions
+  }
+}
+
+export class NeoMigrator<S extends NeoIDBSchema> {
+  lastVersion = 1
+  map = new Map<number, NeoIDBMigration<S>>()
+
+  constructor(
+    definition: (v: (version: number) => NeoIDBMigration<S>) => void,
+  ) {
+    definition((version) => {
+      if (this.lastVersion < version) {
+        this.lastVersion = version
+      }
+      const migration = new NeoIDBMigration<S>(version)
+      this.map.set(version, migration)
+      return migration
+    })
+  }
+
+  migrate(event: IDBVersionChangeEvent) {
+    const db = (event.target as IDBOpenDBRequest).result
+    const tx = (event.target as IDBOpenDBRequest).transaction
+    if (!tx) {
+      return new NeoIDBError('No transaction available during onupgradeneeded')
+    }
+    const oldVersion = event.oldVersion
+    const newVersion = event.newVersion || db.version
+
+    for (let version = oldVersion + 1; version <= newVersion; version++) {
+      const migration = this.map.get(version)
+      if (migration) {
+        migration.getActions().forEach((action) => action({ db, tx }))
+      } else {
+        console.warn(`No migration defined for version ${version}`)
+      }
+    }
   }
 }
